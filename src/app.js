@@ -23,6 +23,9 @@ let state = { ...DEFAULTS },
 try {
   saved = JSON.parse(localStorage.getItem(STORE) || "[]");
   if (!Array.isArray(saved)) saved = [];
+  saved = saved
+    .filter((item) => item && typeof item === "object" && item.inputs)
+    .slice(0, 12);
 } catch {
   saved = [];
 }
@@ -421,7 +424,86 @@ ${panel("Scope and decisions", "The calculation deliberately exposes these omiss
   `;
 }
 
+// Keep correction controls available even when a calculation fails.
+function recoveryControls() {
+  const fields =
+    tab === "vortex"
+      ? [
+          ["st", "Strouhal number · St"],
+          ["length", "Characteristic length · L"],
+          ["proximity", "Frequency proximity band", "%"],
+          ["modalMass", "Effective modal mass"],
+          ["modalStiffness", "Effective modal stiffness", "N/m"],
+        ]
+      : tab === "mounting"
+        ? [
+            ["density", "Fin density", "kg/m³"],
+            ["finCount", "Fin count"],
+            ["extraMass", "Additional total mass"],
+            ["baseMass", "Baseline vehicle mass"],
+            ["baseCG", "Baseline CG station"],
+            ["assemblyX", "Assembly centroid station"],
+            ["cp", "CP station"],
+            ["bodyOD", "Body outside diameter"],
+            ["normalCoefficient", "Normal-force coefficient · Cn"],
+            ["loadArm", "Normal-force lever arm"],
+          ]
+        : [];
+  return panel(
+    "Correct your inputs",
+    "Your values are retained. No stale results are shown.",
+    `<div class="field-grid">${fields.map(([key, label, u]) => input(key, label, "", { unit: u, optional: DEFAULTS[key] === null })).join("")}</div>` +
+      (tab === "vortex"
+        ? textInput(
+            "modeFrequencies",
+            "Natural frequencies (Hz, comma-separated)",
+          )
+        : "") +
+      (tab === "flutter"
+        ? select("method", "Flutter relation", [
+            ["bennett", "Bennett centroid correction"],
+            ["martin", "Martin fixed ε = 0.25 · comparison"],
+          ]) +
+          (trajectory.length
+            ? '<button class="quiet" data-action="clear-trajectory">Remove trajectory</button>'
+            : "")
+        : ""),
+  );
+}
+
+let renderTimer,
+  pointerDown = false,
+  pendingRender = false;
+function queueRender() {
+  pendingRender = true;
+  if (pointerDown) return;
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 0);
+}
+document.addEventListener("pointerdown", () => {
+  pointerDown = true;
+});
+for (const eventName of ["pointerup", "pointercancel"])
+  document.addEventListener(eventName, () => {
+    pointerDown = false;
+    if (pendingRender) queueRender();
+  });
+
 function render() {
+  clearTimeout(renderTimer);
+  pendingRender = false;
+  const active = document.activeElement;
+  const focusId = active?.id;
+  const focusButton = active?.dataset?.tab
+    ? `[data-tab="${active.dataset.tab}"]`
+    : active?.dataset?.unit
+      ? `[data-unit="${active.dataset.unit}"]`
+      : active?.dataset?.action
+        ? `[data-action="${active.dataset.action}"]`
+        : null;
+  const disclosureStates = [
+    ...document.querySelectorAll(".sidebar details"),
+  ].map((d) => d.open);
   let content;
   try {
     content =
@@ -433,7 +515,7 @@ function render() {
             ? mountingView()
             : methodsView();
   } catch (e) {
-    content = `<section class="panel error" role="alert"><h2>Check the inputs</h2><p>${escape(e.message)}</p><p>Results are paused until the inputs are valid.</p></section>`;
+    content = `<section class="panel error" role="alert"><h2>Check the inputs</h2><p>${escape(e.message)}</p><p>Results are paused until the inputs are valid.</p></section>${recoveryControls()}`;
   }
   $("#app").innerHTML =
     `<header class="topbar"><a class="brand" href="#" aria-label="STAR Fin Lab home"><span class="brand-mark">${svgIcon("fin")}</span><strong>STAR</strong><span class="brand-divider"></span><span>Fin Lab</span></a><div class="topbar-right"><span class="local-indicator">● &nbsp; Local workspace</span><a href="https://github.com/andyliuduoduo/star-fin-flutter-calculator" target="_blank" rel="noreferrer">Repository ↗</a></div></header>
@@ -454,6 +536,15 @@ function render() {
         "",
       )}</nav><div id="results">${content}</div><footer class="analysis-footer">PRELIMINARY DESIGN STUDY <span>Fin Lab v1.0 · No flight certification inferred</span></footer></div></div></main>
     <input type="file" id="case-file" accept=".json,application/json" hidden><input type="file" id="trajectory-file" accept=".csv,text/csv" hidden>`;
+  document.querySelectorAll(".sidebar details").forEach((d, i) => {
+    if (disclosureStates[i] !== undefined) d.open = disclosureStates[i];
+  });
+  const target = focusId
+    ? document.getElementById(focusId)
+    : focusButton
+      ? $(focusButton)
+      : null;
+  if (target && target.type !== "file") target.focus({ preventScroll: true });
 }
 
 function download(name, data, type) {
@@ -513,8 +604,9 @@ $("#app").addEventListener("click", (event) => {
         break;
       case "save":
         loadCase(caseData());
-        saved = [caseData(), ...saved].slice(0, 12);
-        localStorage.setItem(STORE, JSON.stringify(saved));
+        const updatedSaved = [caseData(), ...saved].slice(0, 12);
+        localStorage.setItem(STORE, JSON.stringify(updatedSaved));
+        saved = updatedSaved;
         notice = "Snapshot saved in this browser.";
         break;
       case "import":
@@ -527,7 +619,8 @@ $("#app").addEventListener("click", (event) => {
         state = { ...DEFAULTS };
         trajectory = [];
         trajectoryName = "";
-        notice = "Loaded current CAD baseline; flight point and material properties remain assumptions. Thickness optimization deferred.";
+        notice =
+          "Loaded current CAD baseline; flight point and material properties remain assumptions. Thickness optimization deferred.";
         break;
       case "clear-trajectory":
         trajectory = [];
@@ -645,6 +738,6 @@ $("#app").addEventListener("change", async (event) => {
   } catch (e) {
     notice = `Could not apply input: ${e.message}`;
   }
-  render();
+  queueRender();
 });
 render();

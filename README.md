@@ -17,13 +17,21 @@ Open the local URL printed by Vite (usually http://127.0.0.1:5173).
 
 ```sh
 npm run check       # engineering regression tests and production build
-npx playwright install chromium
-npm run test:e2e    # desktop/mobile and import/export browser tests
+npx playwright install chromium webkit
+npm run test:e2e    # desktop/mobile, Chromium and WebKit browser tests
 npm run build      # static website in dist/
 npm run preview    # serve the production build locally
 ```
 
 The app has no backend or account requirement. Inputs stay in browser memory; saved snapshots use localStorage on that browser and origin. JSON export/import transfers a complete case, including assumptions and an optional trajectory. No case data is sent to a server. Google Fonts is an optional external font request; system fonts are the fallback.
+
+### Saving and recovering a study
+
+- Use **Save snapshot** before leaving or refreshing; the working form is not autosaved. The latest 12 snapshots are retained. Export JSON for a durable backup or sharing.
+- Hybrid/custom studies with an unknown shear modulus can be saved and imported. Flutter results remain paused until G is supplied; no default modulus is silently substituted.
+- Invalid inputs pause the affected results while retaining correction controls. Modes and mass tools do not require a known G. Mass is also independent of the flutter relation's centroid-validity limit.
+- A rejected import leaves the current study unchanged. JSON requires the complete v1 input schema, preventing partial cases from silently acquiring CAD defaults or source claims. CSV supports quoted fields and decimal/scientific notation; multiline quoted fields are rejected.
+- **Print** prints the current analysis view with its inputs. It is not a full multi-view engineering report.
 
 ## Use the calculator
 
@@ -63,4 +71,4 @@ The numerical regression is tied to [John K. Bennett's v1.3 workbook](https://gi
 
 ## Hosting
 
-`dist/` is a static website that can be served by any static host, including at a subdirectory. The repository is private; no public site is deployed automatically. Do not put credentials in exported cases. To expose the app on a local network, intentionally choose an appropriate Vite host binding; the default binds only to localhost.
+`dist/` is a static website that can be served by any static host, including at a subdirectory. Making this repository public does not deploy a hosted website: the local preview still binds only to localhost. Do not put credentials in exported cases. To expose the app on a local network, intentionally choose an appropriate Vite host binding.

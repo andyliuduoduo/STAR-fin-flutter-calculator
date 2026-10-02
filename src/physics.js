@@ -110,10 +110,6 @@ export function geometry(c) {
   const area = ((r + t) * b) / 2;
   const centroidX = (2 * t * m + t * t + m * r + t * r + r * r) / (3 * (t + r));
   const epsilon = c.method === "martin" ? 0.25 : centroidX / r - 0.25;
-  if (epsilon <= 0)
-    throw new Error(
-      "Centroid correction gives ε ≤ 0. This planform is outside the selected relation; change geometry or explicitly select fixed ε.",
-    );
   return {
     area,
     centroidX,
@@ -128,6 +124,10 @@ export function flutterAt(c, altitude = c.altitude, shear = c.shear) {
   requireNumber(shear, "Shear modulus (Pa)", 1e5, 1e12);
   const g = geometry(c),
     air = atmosphereAt(c, altitude);
+  if (g.epsilon <= 0)
+    throw new Error(
+      "Centroid correction gives ε ≤ 0. This planform is outside the selected relation; change geometry or explicitly select fixed ε.",
+    );
   const denominator =
     (((((24 * g.epsilon * GAMMA * air.pressure) / Math.PI) * g.aspect ** 3) /
       (g.thicknessRatio ** 3 * (g.aspect + 2))) *
@@ -221,9 +221,10 @@ export function vortex(c, maxSpeed = c.speed) {
 }
 
 export function sdofFrequency(mass, stiffness) {
+  if (mass != null) requireNumber(mass, "Effective modal mass (kg)", 1e-9, 1e9);
+  if (stiffness != null)
+    requireNumber(stiffness, "Effective modal stiffness (N/m)", 1e-9, 1e15);
   if (mass == null || stiffness == null) return null;
-  requireNumber(mass, "Effective modal mass (kg)", 1e-9, 1e9);
-  requireNumber(stiffness, "Effective modal stiffness (N/m)", 1e-9, 1e15);
   return Math.sqrt(stiffness / mass) / (2 * Math.PI);
 }
 
@@ -239,6 +240,17 @@ export function massAndLoads(c) {
   requireNumber(c.extraMass, "Additional assembly mass (kg)", 0, 10000);
   const finMass = r.area * c.thickness * c.density;
   const assemblyMass = c.finCount * finMass + c.extraMass;
+  for (const [key, label, min, max] of [
+    ["baseMass", "Baseline mass (kg)", 1e-6, 1e9],
+    ["baseCG", "Baseline CG (m)", 0, 1000],
+    ["assemblyX", "Assembly centroid station (m)", 0, 1000],
+    ["cp", "CP station (m)", 0, 1000],
+    ["bodyOD", "Body OD (m)", 1e-6, 100],
+    ["normalCoefficient", "Normal force coefficient", -10, 10],
+    ["loadArm", "Normal-force lever arm (m)", 0, 100],
+  ]) {
+    if (c[key] != null) requireNumber(c[key], label, min, max);
+  }
   let cg = null,
     stability = null,
     force = null,
@@ -278,6 +290,37 @@ const ALIASES = {
   "totalvelocity(m/s)": "speed",
   "velocity(m/s)": "speed",
 };
+function csvCells(line) {
+  const cells = [];
+  let cell = "",
+    quoted = false,
+    closed = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (quoted) {
+      if (char === '"' && line[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (char === '"') {
+        quoted = false;
+        closed = true;
+      } else cell += char;
+    } else if (char === ",") {
+      cells.push(cell.trim());
+      cell = "";
+      closed = false;
+    } else if (char === '"' && !cell.trim() && !closed) {
+      quoted = true;
+      cell = "";
+    } else if (char === '"' || (closed && char.trim()))
+      throw new Error("Malformed CSV quoting.");
+    else cell += char;
+  }
+  if (quoted)
+    throw new Error("Unclosed CSV quote; multiline fields are not supported.");
+  cells.push(cell.trim());
+  return cells;
+}
 export function parseTrajectory(csv) {
   if (csv.length > 2e6) throw new Error("CSV must be smaller than 2 MB.");
   const lines = csv
@@ -290,7 +333,9 @@ export function parseTrajectory(csv) {
   for (let line of lines) {
     const comment = line.startsWith("#");
     if (comment) line = line.replace(/^#+\s*/, "");
-    const cells = line.split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
+    // Ordinary comment prose is not CSV; only inspect potential header comments.
+    if (comment && (header || !line.includes(","))) continue;
+    const cells = csvCells(line);
     if (!header) {
       const mapped = cells.map(
         (s) => ALIASES[s.toLowerCase().replace(/\s+/g, "")] || null,
@@ -318,6 +363,10 @@ export function parseTrajectory(csv) {
         const value = cells[header.indexOf(k)];
         if (value === "" || value == null)
           throw new Error(`Missing ${k} in CSV row ${rows.length + 2}.`);
+        if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value))
+          throw new Error(
+            `Invalid decimal ${k} in CSV row ${rows.length + 2}.`,
+          );
         return [
           k,
           requireNumber(
@@ -347,13 +396,21 @@ export function loadCase(raw) {
     !raw ||
     raw.version !== VERSION ||
     !raw.inputs ||
-    typeof raw.inputs !== "object"
+    typeof raw.inputs !== "object" ||
+    Array.isArray(raw.inputs)
   )
     throw new Error("Expected a Fin Lab v1 case JSON.");
   const c = { ...DEFAULTS };
   for (const key of Object.keys(c)) {
-    if (!(key in raw.inputs)) continue;
+    if (!Object.hasOwn(raw.inputs, key))
+      throw new Error(
+        `Missing case input: ${key}. Export a complete case from Fin Lab.`,
+      );
     const value = raw.inputs[key];
+    if (key === "shear" && value === null) {
+      c[key] = null;
+      continue;
+    }
     if (DEFAULTS[key] === null) {
       if (
         value !== null &&
@@ -376,11 +433,19 @@ export function loadCase(raw) {
   };
   for (const [key, values] of Object.entries(enums))
     if (!values.includes(c[key])) throw new Error(`Unknown ${key}.`);
-  calculate(c);
+  // A missing G is a valid unfinished study, never a numerical flutter result.
+  if (c.shear !== null) calculate(c);
+  else {
+    geometry(c);
+    atmosphereAt(c);
+    requireNumber(c.speed, "Expected airspeed (m/s)", 0, 3000);
+    requireNumber(c.apogee, "Target apogee (m AGL)", 0, 100000);
+    requireNumber(c.uncertainty, "Modulus sensitivity (%)", 0, 90);
+  }
   vortex(c);
   massAndLoads(c);
   sdofFrequency(c.modalMass, c.modalStiffness);
-  const trajectory = raw.trajectory || [];
+  const trajectory = raw.trajectory ?? [];
   if (!Array.isArray(trajectory) || trajectory.length > 10000)
     throw new Error("Invalid trajectory.");
   trajectory.forEach((r, i) => {
@@ -391,6 +456,9 @@ export function loadCase(raw) {
     if (i && r.time <= trajectory[i - 1].time)
       throw new Error("Trajectory times must increase.");
   });
-  if (trajectory.length) evaluateTrajectory(c, trajectory);
+  if (trajectory.length) {
+    trajectory.forEach((row) => atmosphereAt(c, row.altitude));
+    if (c.shear !== null) evaluateTrajectory(c, trajectory);
+  }
   return { inputs: c, trajectory };
 }

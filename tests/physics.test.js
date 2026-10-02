@@ -101,7 +101,8 @@ test("flutter scaling follows sqrt(G) and t^(3/2)", () => {
 test("geometry is exposed trapezoid; triangular tips are accepted", () => {
   near(geometry(D).area, 112 * 0.0254 ** 2);
   near(geometry({ ...D, tip: 0 }).area, 80 * 0.0254 ** 2);
-  assert.throws(() => geometry({ ...D, sweep: -2 }), /ε/);
+  assert.throws(() => flutterAt({ ...D, sweep: -2 }), /ε/);
+  assert.ok(massAndLoads({ ...D, sweep: -2 }).finMass > 0);
   assert.throws(() => geometry({ ...D, span: 0 }), /span/);
 });
 test("mount and profile labels do not silently change stiffness", () => {
@@ -237,5 +238,61 @@ test("case round trips preserve canonical SI and validate imported enums and tra
         { time: 1, altitude: 0, speed: 1 },
       ],
     }),
+  );
+});
+
+test("unfinished material studies round trip without manufacturing a modulus", () => {
+  const inputs = { ...D, material: "hybrid", shear: null };
+  const trajectory = [
+    { time: 0, altitude: 0, speed: 0 },
+    { time: 1, altitude: 200, speed: 100 },
+  ];
+  const loaded = loadCase({ version: 1, inputs, trajectory });
+  assert.equal(loaded.inputs.shear, null);
+  assert.deepEqual(loaded.trajectory, trajectory);
+  assert.throws(() => calculate(loaded.inputs), /Shear modulus/);
+  assert.ok(massAndLoads(loaded.inputs).finMass > 0);
+  assert.throws(() =>
+    loadCase({ version: 1, inputs: { ...inputs, uncertainty: 100 } }),
+  );
+});
+
+test("partial or malformed imports cannot borrow CAD defaults or confidence", () => {
+  assert.throws(
+    () => loadCase({ version: 1, inputs: { root: 1 } }),
+    /Missing case input/,
+  );
+  assert.throws(() => loadCase({ version: 1, inputs: [] }));
+  assert.throws(() => loadCase({ version: 1, inputs: D, trajectory: false }));
+  const inputs = { ...D };
+  delete inputs.geometryBasis;
+  assert.throws(() => loadCase({ version: 1, inputs }), /geometryBasis/);
+});
+
+test("partially entered optional groups validate supplied values immediately", () => {
+  assert.throws(() => sdofFrequency(-1, null), /mass/);
+  assert.throws(() => sdofFrequency(null, -1), /stiffness/);
+  for (const patch of [
+    { baseMass: -1 },
+    { bodyOD: 0 },
+    { loadArm: -1 },
+    { cp: -1 },
+  ])
+    assert.throws(() => massAndLoads({ ...D, ...patch }));
+});
+
+test("CSV quoted extra columns preserve field alignment and decimal notation", () => {
+  const csv =
+    '# Simulation\n"time_s","note, extra","altitude_agl_m","speed_m_s"\n0,"a,b",0,0\n1,"a ""quote""",1e2,2e2';
+  assert.deepEqual(parseTrajectory(csv), [
+    { time: 0, altitude: 0, speed: 0 },
+    { time: 1, altitude: 100, speed: 200 },
+  ]);
+  for (const bad of ["0x20", "NaN", "Infinity", "1e309", '"10"x'])
+    assert.throws(() =>
+      parseTrajectory(`time_s,altitude_agl_m,speed_m_s\n0,0,0\n1,10,${bad}`),
+    );
+  assert.throws(() =>
+    parseTrajectory('time_s,altitude_agl_m,speed_m_s\n0,0,0\n1,2,"3'),
   );
 });
