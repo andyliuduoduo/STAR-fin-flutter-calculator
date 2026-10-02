@@ -21,6 +21,20 @@ function near(actual, expected, rel = 1e-10) {
   );
 }
 
+test("CAD baseline preserves inch dimensions and nominal thickness without optimization", () => {
+  near(D.root / 0.0254, 20);
+  near(D.tip / 0.0254, 8);
+  near(D.span / 0.0254, 8);
+  near(D.sweep / 0.0254, 6);
+  near((D.root - D.tip - D.sweep) / 0.0254, 6);
+  near(D.sweep + D.tip / 2 - D.root / 2, 0);
+  near(D.thickness / 0.0254, 0.1875);
+  near(geometry(D).aspect, 4 / 7);
+  near(geometry(D).epsilon, 0.25);
+  assert.equal(D.profile, "bevel");
+  assert.match(D.geometryBasis, /optimization deferred/);
+});
+
 test("standard atmosphere reproduces sea-level and 11-km reference values", () => {
   const sea = atmosphereAt({ ...D, launchAltitude: 0 }, 0);
   near(sea.pressure, 101325);
@@ -85,8 +99,8 @@ test("flutter scaling follows sqrt(G) and t^(3/2)", () => {
   near(flutterAt({ ...D, thickness: D.thickness * 2 }).velocity, v * 2 ** 1.5);
 });
 test("geometry is exposed trapezoid; triangular tips are accepted", () => {
-  near(geometry(D).area, 0.0175);
-  near(geometry({ ...D, tip: 0 }).area, 0.0125);
+  near(geometry(D).area, 112 * 0.0254 ** 2);
+  near(geometry({ ...D, tip: 0 }).area, 80 * 0.0254 ** 2);
   assert.throws(() => geometry({ ...D, sweep: -2 }), /ε/);
   assert.throws(() => geometry({ ...D, span: 0 }), /span/);
 });
@@ -154,7 +168,7 @@ test("assembly mass and aft CG include hardware without double counting baseline
     normalCoefficient: 0.5,
     loadArm: 0.05,
   });
-  near(m.finMass, 0.0175 * 0.0047625 * 2800);
+  near(m.finMass, 112 * 0.0254 ** 2 * 0.0047625 * 2800);
   near(m.assemblyMass, 4 * m.finMass + 0.2);
   near(m.cg, (10 + 2 * m.assemblyMass) / (10 + m.assemblyMass));
   near(m.stability, (1.5 - m.cg) / 0.1);
@@ -206,7 +220,7 @@ test("case round trips preserve canonical SI and validate imported enums and tra
     inputs: { ...D, units: "imperial" },
     trajectory: [],
   });
-  assert.equal(c.inputs.root, 0.25);
+  assert.equal(c.inputs.root, 0.508);
   assert.throws(() => loadCase({ version: 2, inputs: D }));
   assert.throws(() =>
     loadCase({ version: 1, inputs: { ...D, units: "meters" } }),

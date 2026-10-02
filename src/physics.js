@@ -7,13 +7,14 @@ const R = 287.05287,
   GRAVITY = 9.80665;
 
 export const DEFAULTS = Object.freeze({
-  name: "STAR · aluminum study",
+  name: "STAR · current CAD baseline",
   units: "si",
-  geometryBasis: "Illustrative dimensions; replace from CAD",
-  root: 0.25,
-  tip: 0.1,
-  span: 0.1,
-  sweep: 0.1,
+  geometryBasis:
+    "Onshape screenshots, 2026-10-01: Cr 20 in, Ct 8 in, b 8 in; leading-edge axial offset = 20 − 8 − 6 = 6 in. Confirm installed exposed boundary. Nominal t = 3/16 in retained; CAD displays 0.188 in (exact expression unverified). Chamfer: 0.1 in offset, 30°; face directions/residual edge thickness unverified. Thickness optimization deferred.",
+  root: 0.508,
+  tip: 0.2032,
+  span: 0.2032,
+  sweep: 0.1524,
   thickness: 0.0047625,
   material: "al7075",
   shear: 26.9e9,
@@ -22,7 +23,7 @@ export const DEFAULTS = Object.freeze({
   materialBasis:
     "Typical 7075 screening value; verify stock, temper and supplier data",
   method: "bennett",
-  profile: "uniform",
+  profile: "bevel",
   mount: "slot",
   mountNotes:
     "Slot + epoxy fillets; root stiffness and internal support remain to be measured. Full-thickness load-transfer region.",

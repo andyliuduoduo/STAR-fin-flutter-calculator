@@ -27,9 +27,9 @@ The app has no backend or account requirement. Inputs stay in browser memory; sa
 
 ## Use the calculator
 
-1. Replace the **illustrative** exposed trapezoid dimensions with CAD values. Root chord excludes the internal tab; semispan begins at the airframe outer surface. Sweep is an axial offset, not an angle.
+1. Start from the [current CAD baseline](docs/CAD_BASELINE.md): 20 in root, 8 in tip, 8 in semispan and 6 in leading-edge sweep offset. Confirm the outline matches the installed **exposed** fin: root chord excludes internal tabs and semispan begins at the airframe outer surface. Sweep is measured parallel to the rocket axis, not along the slanted edge. Nominal 3/16 in thickness is retained; optimization is deferred.
 2. Supply a sourced **shear modulus**, not Young's modulus. SI inputs use mm and GPa; imperial inputs use inches and Msi. Units convert without changing canonical SI data.
-3. Enter airspeed and its corresponding AGL altitude, plus launch elevation MSL. Apogee is context, not the altitude at maximum speed. The 2,000-ft site assumption and 7,000-ft apogee target come from the project discussion; remaining default geometry and flight-point values are demonstrations, not released LE4 parameters.
+3. Enter airspeed and its corresponding AGL altitude, plus launch elevation MSL. Apogee is context, not the altitude at maximum speed. The 2,000-ft site assumption and 7,000-ft apogee target come from the project discussion; default flight-point values remain demonstrations, not released LE4 parameters. Do not use the apogee as the check altitude unless the speed being evaluated actually occurs there.
 4. Review nominal and lower/upper-G flutter estimates. A sensitivity percentage is not statistical confidence or a bound on all model errors.
 5. Import a trajectory to find the minimum **sampled** lower-G velocity margin. All imported rows use paired speed/altitude. No interpolation or flight dynamics simulation is performed.
 6. In **Vortex & modes**, enter a geometry/flow-specific f-based Strouhal correlation and assembly modal frequencies. Do not infer these modes from the flutter formula. A frequency-band crossing is not a failure or flutter prediction.

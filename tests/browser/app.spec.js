@@ -6,6 +6,10 @@ test("point calculation responds, units round trip, independent screens work", a
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
+  await expect(page.locator("#root")).toHaveValue("508");
+  await expect(page.locator("#sweep")).toHaveValue("152.4");
+  await expect(page.locator("#sweep-help")).toContainText("Root leading edge");
+  await expect(page.locator(".fin-svg")).toContainText("m 152.4 mm");
   await expect(
     page.getByRole("heading", { name: "Fin flutter, with context." }),
   ).toBeVisible();

@@ -121,13 +121,13 @@ function sidebar() {
   return `<aside class="sidebar"><div class="section-label">DESIGN INPUTS <span>01—03</span></div>
     <details open><summary><span class="step">01</span> Fin geometry</summary><div class="detail-body">
       <p class="hint">Exposed trapezoid only. Internal tabs are excluded.</p>
-      <div class="field-grid">${input("root", "Root chord · Cr")}${input("tip", "Tip chord · Ct")}${input("span", "Semispan · b")}${input("sweep", "Sweep offset · m", "Axial offset, not an angle.")}${input("thickness", "Plate thickness · t")}</div>
+      <div class="field-grid">${input("root", "Root chord · Cr")}${input("tip", "Tip chord · Ct")}${input("span", "Semispan · b")}${input("sweep", "Sweep offset · m", "Root leading edge → tip leading edge, measured parallel to the rocket axis. Positive aft; not an angle or slanted edge length.")}${input("thickness", "Plate thickness · t")}</div>
       ${select("profile", "Section treatment", [
         ["uniform", "Uniform plate"],
         ["bevel", "Beveled / airfoil edges"],
         ["taper", "Spanwise thickness taper"],
       ])}
-      ${textInput("geometryBasis", "Geometry source / confidence")}
+      ${textInput("geometryBasis", "Geometry / thickness / edge-treatment source", true)}
     </div></details>
     <details open><summary><span class="step">02</span> Material</summary><div class="detail-body">
       ${select("material", "Material study", [
@@ -170,11 +170,14 @@ function finDrawing() {
   const x = (n) => x0 + n * scale,
     y = (n) => y0 - n * scale;
   const pts = `${x(0)},${y(0)} ${x(r)},${y(0)} ${x(m + t)},${y(b)} ${x(m)},${y(b)}`;
-  return `<svg class="fin-svg" viewBox="0 0 560 280" role="img" aria-label="Live fin planform with root chord, tip chord, semispan and root region">
+  return `<svg class="fin-svg" viewBox="0 0 560 280" role="img" aria-label="Live fin planform with root chord, tip chord, semispan, leading-edge sweep offset and root region">
     <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#e5ecef" stroke-width=".7"/></pattern><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 6 0" stroke="#648679" stroke-width="1"/></pattern></defs>
     <rect x="20" y="15" width="520" height="245" rx="8" fill="url(#grid)"/>
     <path d="M45 37h48m-5-4 5 4-5 4" fill="none" stroke="#5d7479"/><text x="102" y="41" class="svg-note">AIRFLOW</text>
     <polygon points="${pts}" fill="#cdf1e3" fill-opacity=".8" stroke="#207c64" stroke-width="1.6"/>
+    <path d="M${x(0)} ${y0}V${y(b)}M${x(m)} ${y(b)}v32" stroke="#7b8c94" stroke-dasharray="3 3" fill="none"/>
+    <path d="M${x(0)} ${y(b) + 28}H${x(m)}M${x(0)} ${y(b) + 24}v8M${x(m)} ${y(b) + 24}v8" stroke="#207c64" fill="none"/>
+    <text x="${x(m / 2)}" y="${y(b) + 20}" text-anchor="middle" class="svg-label">m ${fmt(m / unit("length")[1], 1)} ${unit("length")[0]}</text>
     <path d="M${x(0)} ${y0}H${x(r)}v9H${x(0)}Z" fill="url(#hatch)" stroke="#648679" stroke-width=".7"/>
     <path d="M${x(0)} ${y0 + 28}H${x(r)}M${x(0)} ${y0 + 24}v8M${x(r)} ${y0 + 24}v8" stroke="#7b8c94"/>
     <text x="${x(r / 2)}" y="${y0 + 47}" text-anchor="middle" class="svg-label">Cr ${fmt(r / unit("length")[1], 1)} ${unit("length")[0]}</text>
@@ -413,7 +416,7 @@ function mountingView() {
 function methodsView() {
   return `<div class="view-intro"><span class="eyebrow">TRANSPARENT BY DESIGN</span><h2>Know what the number includes.</h2><p>A preliminary plate-flutter estimate, with separate tools for flow frequencies and assembly bookkeeping.</p></div>
     ${panel("Bennett / Martin relation", "SI internally: metres, pascals, kilograms and seconds.", `<div class="equation-block">S = (Cr + Ct) b / 2<br/>AR = b² / S &nbsp; · &nbsp; λ = Ct / Cr &nbsp; · &nbsp; τ = t / Cr<br/>Cx = (2 Ct m + Ct² + m Cr + Ct Cr + Cr²) / [3 (Ct + Cr)]<br/>ε = Cx / Cr − ¼ &nbsp; (or explicitly fixed at ¼)<br/>D = (24 ε γ p / π) · AR³ / [τ³ (AR + 2)] · (λ + 1) / 2<br/><strong>Vf = a √(G / D)</strong></div><p>The pressure p is local <b>static</b> pressure, not dynamic pressure q. Air temperature, pressure, density and sound speed use a tropospheric lapse-rate model to 11 km MSL. Local mode anchors that profile to measured station temperature and absolute pressure.</p><p>G ± the chosen percentage produces a sensitivity band. It is not a statistical confidence interval and does not capture model uncertainty.</p>`)}
-    ${panel("Scope and decisions", "The calculation deliberately exposes these omissions.", `<ul class="readable-list"><li>Trapezoidal, uniform-thickness plate; the centroid correction assumes uniform areal density. Triangles use Ct = 0.</li><li>Section bevels, airfoils, spanwise taper and hybrid layups require separate stiffness/aerodynamic treatment.</li><li>Root flexibility, adhesive behavior, struts, slot-wall compliance and fastener slip are not represented by this flutter formula.</li><li>No automatic doubling of G for carbon skins or tip-to-tip reinforcement. A laminate-specific input requires evidence.</li><li>Strouhal matching is a forced-response screen, not a flutter model. Its plotted band is a user-selected tolerance, not a predicted lock-in region.</li><li>The default geometry, flight altitude, speed and G sensitivity are illustrative. The historical V1 SD simulation omitted mass; neither it nor a 7,000-ft apogee fixes the max-speed altitude.</li><li>No universal pass/fail safety factor, rule compliance, launch approval, or strength certification is inferred.</li></ul>`)}
+${panel("Scope and decisions", "The calculation deliberately exposes these omissions.", `<ul class="readable-list"><li>Trapezoidal, uniform-thickness plate; the centroid correction assumes uniform areal density. Triangles use Ct = 0.</li><li>Section bevels, airfoils, spanwise taper and hybrid layups require separate stiffness/aerodynamic treatment.</li><li>Root flexibility, adhesive behavior, struts, slot-wall compliance and fastener slip are not represented by this flutter formula.</li><li>No automatic doubling of G for carbon skins or tip-to-tip reinforcement. A laminate-specific input requires evidence.</li><li>Strouhal matching is a forced-response screen, not a flutter model. Its plotted band is a user-selected tolerance, not a predicted lock-in region.</li><li>The default planform comes from the 2026-10-01 CAD screenshots; confirm the exposed boundary. Nominal 3/16-in thickness is retained, not optimized. Flight altitude, speed and G sensitivity remain illustrative. The historical V1 SD simulation omitted mass; neither it nor a 7,000-ft apogee fixes the max-speed altitude.</li><li>No universal pass/fail safety factor, rule compliance, launch approval, or strength certification is inferred.</li></ul>`)}
     ${panel("Sources & implementation", "Original equations implemented independently; no reference-site UI or source code copied.", `<ol class="sources"><li><a href="https://ntrs.nasa.gov/citations/19930085030" target="_blank" rel="noreferrer">Dennis J. Martin · NACA TN 4197 (1958)</a><p>Preliminary flutter criteria. The Bennett spreadsheet labels this 4917; NASA records the report as 4197.</p></li><li><a href="https://github.com/jkb-git/Fin-Flutter-Velocity-Calculator/tree/ef5e50aeb72df2f19b5b9b08d9269467c83af76c" target="_blank" rel="noreferrer">John K. Bennett · corrected calculator, December 2025</a><p>Pinned source for the centroid-aware formula. Regression tests use the v1.3 workbook example; small atmosphere-constant differences are documented.</p></li><li><a href="https://ntrs.nasa.gov/api/citations/20160011392/downloads/20160011392.pdf" target="_blank" rel="noreferrer">NASA TM-2016-219166 · vortex-induced vibration assessment</a><p>St = fL/U and comparison with structural frequencies. Its strut/hose correlations are not adopted as fin correlations.</p></li><li><a href="https://www.clintonaluminum.com/wp-content/uploads/2014/08/Grade-7075-Text-data.pdf" target="_blank" rel="noreferrer">7075 typical property data</a> · <a href="https://online.kaiseraluminum.com/depot/PublicProductInformation/Document/1017/Kaiser_Aluminum_7075_Sheet_Coil_and_Plate.pdf" target="_blank" rel="noreferrer">Kaiser 7075 density</a><p>7075 starting G = 26.9 GPa; density = 2,800 kg/m³. Presets are screening inputs, not guaranteed stock properties.</p></li><li><a href="https://www.rocketryforum.com/rocket-calculators/fin-flutter/" target="_blank" rel="noreferrer">Rocketry Forum calculator</a><p>Interaction reference. Fin Lab uses the pinned Bennett equation, not a numerical copy of the forum page.</p></li></ol>`)}
   `;
 }
@@ -524,7 +527,7 @@ $("#app").addEventListener("click", (event) => {
         state = { ...DEFAULTS };
         trajectory = [];
         trajectoryName = "";
-        notice = "Reset to illustrative study inputs.";
+        notice = "Loaded current CAD baseline; flight point and material properties remain assumptions. Thickness optimization deferred.";
         break;
       case "clear-trajectory":
         trajectory = [];
