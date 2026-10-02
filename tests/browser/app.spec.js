@@ -6,7 +6,9 @@ test("point calculation responds, units round trip, independent screens work", a
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Imperial", exact: true })).toHaveClass("selected");
+  await expect(
+    page.getByRole("button", { name: "Imperial", exact: true }),
+  ).toHaveClass("selected");
   await expect(page.locator("#root")).toHaveValue("20");
   await expect(page.locator("#sweep")).toHaveValue("6");
   await expect(page.locator("#thickness")).toHaveValue("0.1875");
@@ -56,6 +58,21 @@ test("point calculation responds, units round trip, independent screens work", a
   await expect(
     page.getByRole("heading", { name: "Bennett / Martin relation" }),
   ).toBeVisible();
+  await expect(page.locator("#results")).toContainText("Professor Govindjee");
+  await expect(page.locator("#results")).toContainText(
+    "as reported by the user",
+  );
+  await expect(page.locator("#results")).toContainText(
+    "not a verified quotation",
+  );
+  for (const url of [
+    "https://www.researchgate.net/publication/410793139_Subsystem-Level_Aerodynamic_Optimization_with_Max-Q-Based_System_Integration_and_Flight_Testing_of_an_Experimental_Sounding_Rocket",
+    "https://www.rocketryforum.com/rocket-calculators/fin-flutter/",
+    "https://ntrs.nasa.gov/api/citations/20200002364/downloads/20200002364.pdf",
+    "https://apogeerockets.com/education/downloads/Newsletter442.pdf",
+    "https://www.apogeerockets.com/Peak-of-Flight/Newsletter615",
+  ])
+    await expect(page.locator(`#results a[href="${url}"]`)).toBeVisible();
   expect(errors).toEqual([]);
 });
 test("snapshots persist, exports round trip and trajectory evaluation appears", async ({
@@ -78,30 +95,30 @@ test("snapshots persist, exports round trip and trajectory evaluation appears", 
   const path = await download.path();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.locator("#root")).toHaveValue("20");
-  await expect(page.getByRole("button", { name: "Imperial", exact: true })).toHaveClass("selected");
+  await expect(
+    page.getByRole("button", { name: "Imperial", exact: true }),
+  ).toHaveClass("selected");
   await page.locator("#case-file").setInputFiles(path);
   await expect(page.locator("#name")).toHaveValue("Test case");
   await expect(page.locator("#root")).toHaveValue("508");
-  await expect(page.getByRole("button", { name: "SI", exact: true })).toHaveClass("selected");
-  await page
-    .locator("#trajectory-file")
-    .setInputFiles({
-      name: "flight.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(
-        "time_s,altitude_agl_m,speed_m_s\n0,0,0\n1,100,200\n2,300,300\n",
-      ),
-    });
+  await expect(
+    page.getByRole("button", { name: "SI", exact: true }),
+  ).toHaveClass("selected");
+  await page.locator("#trajectory-file").setInputFiles({
+    name: "flight.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      "time_s,altitude_agl_m,speed_m_s\n0,0,0\n1,100,200\n2,300,300\n",
+    ),
+  });
   await expect(page.locator(".trajectory-summary")).toContainText("3 samples");
-  await page
-    .locator("#trajectory-file")
-    .setInputFiles({
-      name: "bad.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(
-        "time_s,altitude_agl_m,vertical_velocity_m_s\n0,0,0\n1,1,1",
-      ),
-    });
+  await page.locator("#trajectory-file").setInputFiles({
+    name: "bad.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      "time_s,altitude_agl_m,vertical_velocity_m_s\n0,0,0\n1,1,1",
+    ),
+  });
   await expect(page.getByRole("status")).toContainText("Vertical velocity");
   await expect(page.locator(".trajectory-summary")).toContainText("flight.csv");
 });

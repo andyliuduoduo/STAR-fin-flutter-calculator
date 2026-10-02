@@ -76,8 +76,44 @@ Material starting points:
 - G10: G=600000 psi converted to SI from Bennett's suggested screening value; density=1850 kg/m³ is an assumption. Neither represents every weave/orientation.
 - Hybrid/custom: G starts blank; density starts at an explicitly assumed 1800 kg/m³. Requires user characterization.
 
+Research-direction acknowledgment: **Professor Govindjee**, consultation guidance as reported by the user, recommended investigating the Strouhal number. Date and original consultation notes were not supplied. This is not a direct quotation or evidence that he selected St = 0.2, approved this implementation, or validated the fin design.
+
 ## 5. Verification
 
 Node tests cover the pinned workbook fixture, the factor-of-sqrt(2) issue, atmosphere anchors, thickness/modulus scaling, geometry, sensitivity, frequency/radian conversion, crossing sweeps, CG, unit-normalized case import, CSV unit/header rejection and paired flight conditions. Additional regressions cover incomplete material studies, partial-case rejection, quoted CSV fields and partially supplied optional groups.
 
 Chromium and WebKit browser tests cover conversions, material presets, missing composite data, independent modes/mass screens, local snapshots, JSON import/export, CSV round trips and errors, local atmosphere, zero speed, print invocation, keyboard focus, direct click-after-edit actions, unavailable storage, escaped input text, invalid-input recovery, and mobile overflow across all views. Printing tests verify invocation, not printer-specific pagination. Passing these checks verifies implementation consistency, not the physical sufficiency of the model, every browser version, or flight readiness.
+
+## 6. Source and attribution register
+
+| Source | Supports | Does not establish |
+| --- | --- | --- |
+| Martin, NACA TN 4197 (1958), linked above | Preliminary flutter-method background | Validation of this particular fin assembly |
+| Bennett, December 2025 article and v1.3 workbook, pinned above | Implemented flutter relation, centroid correction and benchmark | Actual root stiffness, adhesive/laminate allowables or launch approval |
+| U.S. Standard Atmosphere (1976), linked above | Standard tropospheric atmosphere | Site-specific weather |
+| NASA TM-2016-219166, linked above | Strouhal/frequency-screening framework | A fin-specific St correlation |
+| Professor Govindjee, user-reported consultation; date unspecified | Recommendation to investigate the Strouhal number | Authorship or endorsement of the flutter formula, numerical presets, app or safety conclusions |
+| Material references in Section 4 | Typical/screening material inputs | Certified properties of purchased stock or a particular layup |
+| User-provided Onshape screenshots, 2026-10-01; [CAD register](CAD_BASELINE.md) | Recorded planform and displayed edge/thickness settings | Installed exposed boundary, alloy confirmation or optimized thickness |
+| STAR project discussion | Slot/fillet/strut concepts, material direction and flight assumptions | Professor's approval or released requirements |
+| Rocketry Forum calculator | Interaction reference and numerical comparison | Authority overriding the pinned Bennett equation |
+| Sathe et al. (2026), full reference below | Max-Q-based subsystem integration; fin planform/section trade studies | Transferable STAR dimensions or adoption of the paper's flutter coefficient |
+| Li, Geiselhart & Robinson (2019), NASA NTRS 20200002364 | Higher-fidelity aircraft flutter-analysis background | A fin-specific Strouhal correlation or a solver implemented here |
+| Van Milligan, Peak of Flight #442 (2017) | Planform, airfoil and thickness-taper design background | A universal transonic fin optimum |
+| Bennett, Peak of Flight #615 | Original publication context for the flutter correction | Superseding the maintained, pinned revision or universal reinforcement factors |
+
+### User-supplied design bibliography
+
+1. **Ajinkya Shrikant Sathe, Ayyan Nikunj Bhartia, Surya Sridhar and Jayakrishnan Radhakrishnan.** “Subsystem-Level Aerodynamic Optimization with Max-Q-Based System Integration and Flight Testing of an Experimental Sounding Rocket.” *Aerospace Science and Technology* 178 (2026), 113242. [Author-uploaded full text](https://www.researchgate.net/publication/410793139_Subsystem-Level_Aerodynamic_Optimization_with_Max-Q-Based_System_Integration_and_Flight_Testing_of_an_Experimental_Sounding_Rocket); [DOI: 10.1016/j.ast.2026.113242](https://doi.org/10.1016/j.ast.2026.113242). Sections 2.1.1–2.1.3 support process-level consideration of max-Q and fin geometry/section trades. **Equation (2) displays the 2G/1.337 form; it is not the numerical authority for this app.** Do not transfer its optimized dimensions or assume max-Q is necessarily the minimum flutter-margin point for STAR. This app checks all imported trajectory samples and does not reproduce the paper's CFD, FSI or modal solvers.
+2. **Rocketry Forum.** [Fin flutter velocity calculator](https://www.rocketryforum.com/rocket-calculators/fin-flutter/). Interaction reference and dated numerical comparison only; see the coefficient comparison below.
+3. **Wu Li, Karl Geiselhart and Jay Robinson.** [*Flutter Prediction for Aircraft Conceptual Design*](https://ntrs.nasa.gov/api/citations/20200002364/downloads/20200002364.pdf). AIAA Aerospace Sciences Meeting, 2019; [NASA NTRS 20200002364 metadata](https://ntrs.nasa.gov/citations/20200002364). Describes ConceptFEA and p-k-based flutter prediction for aircraft concepts. This is higher-fidelity methodology background, not the source of St = 0.2 or a direct rocket-fin validation. The report ID includes 2020, but NASA lists the publication date as January 7, 2019.
+4. **Tim Van Milligan.** [“What is the best fin shape for a model rocket?”](https://apogeerockets.com/education/downloads/Newsletter442.pdf), *Peak of Flight* #442, May 2, 2017. Reference for planform versus airfoil-section and spanwise-thickness effects, particularly the airfoil/taper discussion on the printed pages 6–7. Low-speed model-rocket results are not a universal transonic optimum. The app records section treatment but does not solve its aerodynamic or stiffness effects.
+5. **John K. Bennett.** [“Fin Flutter Analysis Revisited (Again)”](https://www.apogeerockets.com/Peak-of-Flight/Newsletter615), *Peak of Flight* #615. Historical publication of the correction and geometry/atmosphere discussion. The implementation is pinned to the maintained December 2025 article and v1.3 workbook instead of the original webpage's worked example. The app does not automatically adopt the article's tip-to-tip G multiplier.
+
+Checked 2026-10-02. Original PDFs and private consultation notes are not redistributed in this repository. These references inform a preliminary design study, not a certification.
+
+### Forum comparison checked 2026-10-02
+
+The [forum page](https://www.rocketryforum.com/rocket-calculators/fin-flutter/) displayed `Vf = a sqrt[2 G tau³ (AR+2) / (1.337 AR³ (lambda+1) p)]`. For epsilon = 0.25, the Bennett relation simplifies to the same expression **without the extra numerator factor 2** (up to rounding 1.337). The author's [December 2025 article](https://github.com/jkb-git/Fin-Flutter-Velocity-Calculator/blob/ef5e50aeb72df2f19b5b9b08d9269467c83af76c/Calculating_Fin_Flutter_Velocity_Bennett-12-25.pdf), pp. 1 and 6, explains the repeated factor-of-two error.
+
+Matched example: root 20 in, tip 8 in, semispan 8 in, sweep 6 in, thickness 0.188 in, G = 3.77 Msi, standard atmosphere at 7,000 ft MSL. Fin Lab gives 1,553.2 ft/s; evaluating the displayed forum equation gives 2,196.4 ft/s, matching the user's forum screenshot. This dated comparison does not assume the external page remains unchanged. Neither value is a certification of structural safety.

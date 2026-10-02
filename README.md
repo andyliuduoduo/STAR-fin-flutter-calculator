@@ -71,6 +71,10 @@ See [docs/METHODS.md](docs/METHODS.md) for equations, source links, assumptions 
 
 The numerical regression is tied to [John K. Bennett's v1.3 workbook](https://github.com/jkb-git/Fin-Flutter-Velocity-Calculator/tree/ef5e50aeb72df2f19b5b9b08d9269467c83af76c). CI runs the regression tests, builds the app, and exercises the browser controls.
 
+The Strouhal investigation was prompted by **Professor Govindjee's advice, as reported by the user**. No consultation date or original notes were supplied. This acknowledgment does not attribute the flutter equation, a selected Strouhal correlation, software validation, or flight approval to him. See the [source and attribution register](docs/METHODS.md#6-source-and-attribution-register) for the distinction between published sources, consultation guidance and STAR assumptions.
+
+The website's **Method & sources** tab also cites all five user-supplied references: the Sathe et al. sounding-rocket optimization paper, Rocketry Forum calculator, NASA's *Flutter Prediction for Aircraft Conceptual Design*, Apogee #442, and Apogee #615. Each is labeled by its actual role; none is presented as flight approval or as an implemented CFD/FEA solver.
+
 ## Hosting
 
 `dist/` is a static website that can be served by any static host, including at a subdirectory. Making this repository public does not deploy a hosted website: the local preview still binds only to localhost. Do not put credentials in exported cases. To expose the app on a local network, intentionally choose an appropriate Vite host binding.
