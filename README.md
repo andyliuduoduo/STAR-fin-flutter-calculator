@@ -35,6 +35,8 @@ The app has no backend or account requirement. Inputs stay in browser memory; sa
 
 ## Use the calculator
 
+New studies and Reset default to **Imperial** (inches, feet, ft/s and Msi). SI remains available; saved/imported cases retain their recorded units. Internal calculations and CSV files remain SI.
+
 1. Start from the [current CAD baseline](docs/CAD_BASELINE.md): 20 in root, 8 in tip, 8 in semispan and 6 in leading-edge sweep offset. Confirm the outline matches the installed **exposed** fin: root chord excludes internal tabs and semispan begins at the airframe outer surface. Sweep is measured parallel to the rocket axis, not along the slanted edge. Nominal 3/16 in thickness is retained; optimization is deferred.
 2. Supply a sourced **shear modulus**, not Young's modulus. SI inputs use mm and GPa; imperial inputs use inches and Msi. Units convert without changing canonical SI data.
 3. Enter airspeed and its corresponding AGL altitude, plus launch elevation MSL. Apogee is context, not the altitude at maximum speed. The 2,000-ft site assumption and 7,000-ft apogee target come from the project discussion; default flight-point values remain demonstrations, not released LE4 parameters. Do not use the apogee as the check altitude unless the speed being evaluated actually occurs there.

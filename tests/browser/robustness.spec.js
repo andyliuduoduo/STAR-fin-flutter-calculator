@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+
 async function edit(page, id, value) {
   await page.locator(`#${id}`).fill(value);
   await page.locator(`#${id}`).blur();
@@ -13,6 +14,7 @@ test("invalid local inputs remain editable and recover in every view", async ({
   page,
 }) => {
   await page.goto("/");
+  await view(page, "SI");
   await view(page, "Vortex & modes");
   await edit(page, "length", "0");
   await expect(page.getByRole("alert")).toBeVisible();
@@ -47,6 +49,7 @@ test("editing then directly clicking or tabbing preserves actions, values and fo
   page,
 }) => {
   await page.goto("/");
+  await view(page, "SI");
   await page.locator("#thickness").fill("3");
   await view(page, "Imperial");
   await expect(page.locator("#thickness")).toHaveValue(
@@ -71,6 +74,7 @@ test("hybrid study with missing G saves and exports without fake flutter results
   page,
 }) => {
   await page.goto("/");
+  await view(page, "SI");
   await page.locator("#material").selectOption("hybrid");
   await expect(page.getByRole("alert")).toContainText("Shear modulus");
   await view(page, "Save snapshot");
@@ -94,6 +98,7 @@ test("local atmosphere, presets, zero speed, CSV export and print are functional
   page,
 }) => {
   await page.goto("/");
+  await view(page, "SI");
   for (const material of ["al6061", "g10", "al7075"]) {
     await page.locator("#material").selectOption(material);
     await expect(page.getByRole("alert")).toHaveCount(0);
@@ -141,6 +146,7 @@ test("malformed imports and unavailable storage do not corrupt the current study
     localStorage.setItem("star-finlab-cases-v1", "[null,42]"),
   );
   await page.goto("/");
+  await view(page, "SI");
   await expect(page.locator("#saved-case option")).toHaveCount(1);
   await page
     .locator("#case-file")
@@ -171,6 +177,7 @@ test("all views remain usable on a small phone, including error recovery", async
 }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
+  await view(page, "SI");
   for (const name of [
     "Flutter envelope",
     "Vortex & modes",

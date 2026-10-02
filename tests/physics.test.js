@@ -22,6 +22,7 @@ function near(actual, expected, rel = 1e-10) {
 }
 
 test("CAD baseline preserves inch dimensions and nominal thickness without optimization", () => {
+  assert.equal(D.units, "imperial");
   near(D.root / 0.0254, 20);
   near(D.tip / 0.0254, 8);
   near(D.span / 0.0254, 8);

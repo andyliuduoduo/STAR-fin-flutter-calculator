@@ -6,6 +6,11 @@ test("point calculation responds, units round trip, independent screens work", a
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
+  await expect(page.getByRole("button", { name: "Imperial", exact: true })).toHaveClass("selected");
+  await expect(page.locator("#root")).toHaveValue("20");
+  await expect(page.locator("#sweep")).toHaveValue("6");
+  await expect(page.locator("#thickness")).toHaveValue("0.1875");
+  await page.getByRole("button", { name: "SI", exact: true }).click();
   await expect(page.locator("#root")).toHaveValue("508");
   await expect(page.locator("#sweep")).toHaveValue("152.4");
   await expect(page.locator("#sweep-help")).toContainText("Root leading edge");
@@ -57,6 +62,7 @@ test("snapshots persist, exports round trip and trajectory evaluation appears", 
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "SI", exact: true }).click();
   await page.locator("#name").fill("Test case");
   await page.locator("#name").blur();
   await page
@@ -71,8 +77,12 @@ test("snapshots persist, exports round trip and trajectory evaluation appears", 
   const download = await d;
   const path = await download.path();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(page.locator("#root")).toHaveValue("20");
+  await expect(page.getByRole("button", { name: "Imperial", exact: true })).toHaveClass("selected");
   await page.locator("#case-file").setInputFiles(path);
   await expect(page.locator("#name")).toHaveValue("Test case");
+  await expect(page.locator("#root")).toHaveValue("508");
+  await expect(page.getByRole("button", { name: "SI", exact: true })).toHaveClass("selected");
   await page
     .locator("#trajectory-file")
     .setInputFiles({
